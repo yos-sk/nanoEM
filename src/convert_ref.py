@@ -16,7 +16,7 @@ def conversion(ref, flag):
 
     for line in f:
         if line[0] == '>':
-            print(line, end='')
+            print(line.rstrip('\n') + flag)
         else:
             if flag == 'CT':
                 for base in line:
@@ -34,12 +34,13 @@ def conversion(ref, flag):
                         print('a', end='')
                     else:
                         print(base, end='')
+    f.close()
 
 def main():
     ref = sys.argv[1]
-    flag = sys.argv[2]
 
-    conversion(ref, flag)
+    conversion(ref, "CT")
+    conversion(ref, "GA")
 
 if __name__ == '__main__':
     main()
