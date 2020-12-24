@@ -56,7 +56,7 @@ samtools index output_GA.sorted.bam
 ```
 sambamba mpileup output_CT.sorted.bam -L cpg_sites.bed -o pileup_CT.tsv -t 8 --samtools -f ref
 sambamba mpileup output_GA.sorted.bam -L cpg_sites.bed -o pileup_GA.tsv -t 8 --samtools -f ref
-python script/call_methylation.py pileup_CT.tsv pileup_GA.tsv > frequency_methylation.tsv
+python src/call_methylation.py pileup_CT.tsv pileup_GA.tsv > frequency_methylation.tsv
 ```
 
 ### Visualization for bisulfite mode of IGV
