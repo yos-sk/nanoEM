@@ -5,7 +5,6 @@ Two BAM files:
 2. read (G->A)
 '''
 
-import mappy as mp
 import sys
 import gzip
 import re
