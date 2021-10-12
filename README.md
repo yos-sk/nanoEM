@@ -3,7 +3,7 @@
 Codes for analyzing nanoEM data.
 
 ## Reference
-https://academic.oup.com/nar/article/49/14/e81/6279847?login=true
+https://academic.oup.com/nar/article/49/14/e81/6279847
 
 ## Requirements
 
