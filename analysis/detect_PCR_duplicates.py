@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 '''
 Detect PCR dulicates from the 5 prime positions and the 3 prime positions of reads in a BAM file. 
 '''
