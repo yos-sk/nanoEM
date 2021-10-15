@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 '''
 Detect reads with multiple hits and split hits from BAM file
 '''

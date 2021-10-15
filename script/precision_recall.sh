@@ -1,3 +1,6 @@
+#!/bin/sh
+#$ -S /bin/sh
+
 echo "Low methylation site (< 0.25)" 
 echo "TP"
 TP=`awk '{if ($3 < 0.25 && $6 < 0.25 && NR > 1) count+= 1} END {print count}' $1`

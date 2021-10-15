@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 '''
 Extract best unique alignemnt from four BAM files
 Two BAM files:
@@ -5,9 +7,7 @@ Two BAM files:
 2. read (G->A)
 '''
 
-import mappy as mp
 import sys
-import gzip
 import pysam
 import argparse
 
