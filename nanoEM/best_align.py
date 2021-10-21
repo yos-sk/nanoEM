@@ -106,15 +106,15 @@ def complementary(seq):
 
     return out
 
-def compare(out, bamfile, fastq):
+def compare(out, bamfile, fastq, out_prefix):
     '''
     Compare the mapping results and decide the best unique alignment
     1: read (C->T)
     2: read (G->A)
     '''
     seq = read_fastq(fastq)
-    w1 = open('output_CT.sam', 'w')
-    w2 = open('output_GA.sam', 'w')
+    w1 = open(out_prefix + 'output_CT.sam', 'w')
+    w2 = open(out_prefix + 'output_GA.sam', 'w')
 
     '''
     Customize header of SAM files 
