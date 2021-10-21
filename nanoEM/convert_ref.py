@@ -10,7 +10,7 @@ import os
 
 def conversion_ref(ref:str, out_path:str) -> None:
     
-    if not os.path.exit(ref):
+    if not os.path.exists(ref):
         print("Reference file does not exit!", file=sys.stderr)
         sys.exit(1)
     
