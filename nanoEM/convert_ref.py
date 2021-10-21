@@ -6,10 +6,19 @@ C → T or G → A conversion of reference genome
 
 import sys
 import gzip
+import os
 
-def conversion_ref(ref:str, out_fh:str) -> None:
+def conversion_ref(ref:str, out_path:str) -> None:
     
-    out = gzip.open(out_fh, 'wt')
+    if not os.path.exit(ref):
+        print("Reference file does not exit!", file=sys.stderr)
+        sys.exit(1)
+    
+    if not os.path.exists(out_path):
+        print("Output directory does not exit!", file=sys.stderr)
+        sys.exit(1)
+        
+    out = gzip.open(out_path + '/' + 'converted_ref.fa.gz', 'wt')
 
     for flag in ["CT", "GA"]:
         if ref[-3:] == '.gz':
@@ -22,7 +31,7 @@ def conversion_ref(ref:str, out_fh:str) -> None:
 
         for line in f:
             if line[0] == '>':
-                print(line.rstrip('\n') + flag)
+                print(line.rstrip('\n') + flag, file=out)
             else:
                 if flag == 'CT':
                     for base in line:
