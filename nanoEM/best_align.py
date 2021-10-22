@@ -6,12 +6,11 @@ Two BAM files:
 2. read (G->A)
 '''
 
-import sys
 import gzip
-import re
 import pysam
 import hashlib
-import argparse
+import os
+import subprocess
 
 class cigar_string:
     def __init__(self):
@@ -106,7 +105,7 @@ def complementary(seq):
 
     return out
 
-def compare(out, bamfile, fastq, out_prefix):
+def compare(out:dict, bamfile:str, fastq:str, out_prefix:str, thread:int):
     '''
     Compare the mapping results and decide the best unique alignment
     1: read (C->T)
@@ -243,3 +242,20 @@ def compare(out, bamfile, fastq, out_prefix):
 
     w1.close()
     w2.close()
+
+    command = 'samtools view -Sb ' + out_prefix + 'output_CT.sam' +  ' > ' + out_prefix + 'output_CT.bam'
+    subprocess.check_call(command, shell=True)
+
+    command = 'samtools view -Sb ' + out_prefix + 'output_CT.sam' +  ' > ' + out_prefix + 'output_CT.bam'
+    subprocess.check_call(command, shell=True)
+
+    pysam.sort("-@", str(thread), "-o", out_prefix + 'output_CT.sorted.bam', out_prefix + 'output_CT.bam')
+    pysam.index(out_prefix + 'output_CT.sorted.bam')
+
+    pysam.sort("-@", str(thread), "-o", out_prefix + 'output_GA.sorted.bam', out_prefix + 'output_GA.bam')
+    pysam.index(out_prefix + 'output_GA.sorted.bam')
+    
+    os.remove(out_prefix + 'output_CT.sam')
+    os.remove(out_prefix + 'output_GA.sam')
+    os.remove(out_prefix + 'output_CT.bam')
+    os.remove(out_prefix + 'output_GA.bam')
