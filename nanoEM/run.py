@@ -104,5 +104,6 @@ def call_mathylation_main(args):
     print('chromosome', 'position', 'methyl', 'unmethyl', 'freqeucy', sep='\t', file=w) 
     for key in out:
         c, p = key.split(':')
+        if out[key]['methyl'] + out[key]['unmethyl']: continue
         freq = out[key]['methyl'] / (out[key]['methyl'] + out[key]['unmethyl']) 
         print(c, p, out[key]['methyl'], out[key]['unmethyl'], freq, sep='\t', file=w) 
