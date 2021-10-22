@@ -29,18 +29,18 @@ def best_align_main(args):
         print("Output directory does not exit!", file=sys.stderr)
         sys.exit(1)
 
-    command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix temp_sam1 -ax map-ont ' + args.ref + ' ' + \
+    command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix ' + args.out_prefix + 'temp_sam1 -ax map-ont ' + args.ref + ' ' + \
                              prefix + '_CT.fq.gz  --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '1.sorted.bam'
     subprocess.check_call(command, shell=True)
 
-    command = 'samtools index 1.sorted.bam'
+    command = 'samtools index ' + args.out_prefix + '1.sorted.bam'
     subprocess.check_call(command, shell=True)
 
-    command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix temp_sam1 -ax map-ont ' + args.ref + ' ' + \
+    command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix ' + args.out_prefix + 'temp_sam1 -ax map-ont ' + args.ref + ' ' + \
                              prefix + '_GA.fq.gz --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '2.sorted.bam'
     subprocess.check_call(command, shell=True)
 
-    command = 'samtools index 2.sorted.bam'
+    command = 'samtools index ' + args.out_prefix + '2.sorted.bam'
     subprocess.check_call(command, shell=True)
 
     out = dict()
@@ -48,7 +48,12 @@ def best_align_main(args):
     extract_information(args.out_prefix + "1.sorted.bam", 1, out)
     extract_information(args.out_prefix + "2.sorted.bam", 2, out)
 
-    compare(out, args.out_prefix + "1.sorted.bam", args.fastq, args.out_prefix)
+    compare(out, args.out_prefix + "1.sorted.bam", args.fastq, args.out_prefix, args.thread)
+
+    os.remove(args.out_prefix + '1.sorted.bam')
+    os.remove(args.out_prefix + '1.sorted.bam.bai')
+    os.remove(args.out_prefix + '2.sorted.bam')
+    os.remove(args.out_prefix + '2.sorted.bam.bai')
 
 
 def call_mathylation_main(args):
@@ -57,33 +62,33 @@ def call_mathylation_main(args):
         sys.exit(1)
     
 
-    if args.ref:
+    if args.reference:
         #command = 'sambamba mpileup output_CT.sorted.bam -L ' + args.cpgs + ' -o ' +  args.out_prefix + 'pileup_CT.tsv -t ' + \
         #           args.thread + ' --samtools -f ' + args.ref_fasta
         #subprocess.check_call(command, shell=True)
 
-        hout = args.out_prefix + 'pileup_CT.tsv'
-        subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, '-f', args.ref_fasta, 'output_CT.sorted.bam'], stdout = hout)
+        hout = open(args.out_prefix + 'pileup_CT.tsv', 'w')
+        subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, '-f', args.ref_fasta, args.input_prefix + 'output_CT.sorted.bam'], stdout = hout)
         hout.close()
 
         #command = 'sambamba mpileup output_GA.sorted.bam -L ' + args.cpgs + ' -o ' +  args.out_prefix + 'pileup_GA.tsv -t ' + \
         #           args.thread + ' --samtools -f ' + args.ref_fasta
         #subprocess.check_call(command, shell=True)
-        hout = args.out_prefix + 'pileup_GA.tsv'
-        subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, '-f', args.ref_fasta, 'output_GA.sorted.bam'], stdout = hout)
+        hout = open(args.out_prefix + 'pileup_GA.tsv', 'w')
+        subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, '-f', args.ref_fasta, args.input_prefix + 'output_GA.sorted.bam'], stdout = hout)
         hout.close()
     
     else:
         #command = 'sambamba mpileup output_CT.sorted.bam -L ' + args.cpgs + ' -o ' +  args.out_prefix + 'pileup_CT.tsv -t ' + args.thread
         #subprocess.check_call(command, shell=True)
-        hout = args.out_prefix + 'pileup_CT.tsv'
+        hout = open(args.out_prefix + 'pileup_CT.tsv', 'w')
         subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, 'output_CT.sorted.bam'], stdout = hout)
         hout.close()
 
         #command = 'sambamba mpileup output_GA.sorted.bam -L ' + args.cpgs + ' -o ' +  args.out_prefix + 'pileup_GA.tsv -t ' + args.thread
         #subprocess.check_call(command, shell=True)
 
-        hout = args.out_prefix + 'pileup_GA.tsv'
+        hout = open(args.out_prefix + 'pileup_GA.tsv', 'w')
         subprocess.check_call(['samtools', 'mpileup', '-l', args.cpgs, 'output_GA.sorted.bam'], stdout = hout)
         hout.close()
     
@@ -92,8 +97,8 @@ def call_mathylation_main(args):
     
     out = dict()
     
-    call_methylation(fw, out, '+', args.ref, args.cpgs)
-    call_methylation(re, out, '-', args.ref, args.cpgs)
+    call_methylation(fw, out, '+', args.reference, args.cpgs)
+    call_methylation(re, out, '-', args.reference, args.cpgs)
 
     w = open(args.out_prefix + 'methylation_frequency.tsv', 'w')
     print('chromosome', 'position', 'methyl', 'unmethyl', 'freqeucy', sep='\t', file=w) 

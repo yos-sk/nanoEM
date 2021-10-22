@@ -41,8 +41,8 @@ def base_identifier(cpgs:str) -> dict:
         f = open(cpgs, 'r')
     
     for i, line in enumerate(f):
-        items = line.rstrip('\n')
-        key = items[0] + ':' + items[1]
+        items = line.rstrip('\n').split('\t')
+        key = items[0] + ':' + items[2]
         if i % 2 == 0:
             out[key] = 'C'
         else:
@@ -66,32 +66,55 @@ def call_methylation(in_fh:str, out:dict, strand:str, flag_ref:bool, cpgs:str):
             base = base_dic[key]
              
         num = int(items[3])
+        if num == 0: continue
         p_base = parse_pileup(items[4])
 
-        assert len(p_base) == num,  'Number of bases: [{0}] conflicts with parsed pileup; [{1}].format(num, len(p_base))'
+        assert len(p_base) == num,  'Number of bases: {0} conflicts with parsed pileup; {1}'.format(num, len(p_base))
 
         if key not in out:
             out[key] = {'methyl':0, 'unmethyl':0}
         
-        if strand == '+':
-            for s in p_base:
-                if s == '.' and base == 'C':
-                    out[key]['methyl'] += 1
-                if s == ',' and base == 'G':
-                    out[key]['methyl'] += 1
-                if s == 'T' and base == 'C':
-                    out[key]['unmethyl'] += 1
-                if s == 'a' and base == 'G':
-                    out[key]['unmethyl'] += 1
-        else:
-            for s in p_base:
-                if s == '.' and base == 'G':
+        if flag_ref:
+            if strand == '+':
+                for s in p_base:
+                    if s == '.' and base == 'C':
                         out[key]['methyl'] += 1
-                if s == ',' and base == 'C':
+                    if s == ',' and base == 'G':
                         out[key]['methyl'] += 1
-                if s == 'A' and base == 'G':
+                    if s == 'T' and base == 'C':
                         out[key]['unmethyl'] += 1
-                if s == 't' and base == 'C':
+                    if s == 'a' and base == 'G':
+                        out[key]['unmethyl'] += 1
+            else:
+                for s in p_base:
+                    if s == '.' and base == 'G':
+                        out[key]['methyl'] += 1
+                    if s == ',' and base == 'C':
+                        out[key]['methyl'] += 1
+                    if s == 'A' and base == 'G':
+                        out[key]['unmethyl'] += 1
+                    if s == 't' and base == 'C':
+                        out[key]['unmethyl'] += 1
+        else:
+            if strand == '+':
+                for s in p_base:
+                    if s == 'C' and base == 'C':
+                        out[key]['methyl'] += 1
+                    if s == 'g' and base == 'G':
+                        out[key]['methyl'] += 1
+                    if s == 'T' and base == 'C':
+                        out[key]['unmethyl'] += 1
+                    if s == 'a' and base == 'G':
+                        out[key]['unmethyl'] += 1
+            else:
+                for s in p_base:
+                    if s == 'G' and base == 'G':
+                        out[key]['methyl'] += 1
+                    if s == 'c' and base == 'C':
+                        out[key]['methyl'] += 1
+                    if s == 'A' and base == 'G':
+                        out[key]['unmethyl'] += 1
+                    if s == 't' and base == 'C':
                         out[key]['unmethyl'] += 1
 
     f.close()

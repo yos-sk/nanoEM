@@ -46,13 +46,15 @@ def create_parser():
     call_methylation = subparsers.add_parser("call-methylation",
                                 help = "Convert C/Gs in a fastq file to T/As")
 
-    call_methylation.add_argument("--reference", "-ref", action='store_true', 
+    call_methylation.add_argument("--reference", "-ref", action='store_true', required=False,
                                 help = "Reference for runnning sambamba")
     call_methylation.add_argument("--thread", "-t", type=int, default=4, help = "Thread number")
-    call_methylation.add_argument("--ref_fasta", "-f", type=str, 
-                                help = "Reference fasta file")
+    call_methylation.add_argument("--ref_fasta", "-f", type=str, required=False,  
+                               help = "Reference fasta file")
     call_methylation.add_argument("--cpgs", "-c", type=str, 
                                 help = "CpG sites in reference genome [bed format]")
+    call_methylation.add_argument("--input_prefix", "-i", type=str, 
+                                help = "Prefix of input directory")
     call_methylation.add_argument("--out_prefix", "-o", type=str, 
                                 help = "Prefix of output directory")
     call_methylation.set_defaults(func = call_mathylation_main)
