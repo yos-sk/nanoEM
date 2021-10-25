@@ -14,11 +14,13 @@ def create_parser():
     convert_ref = subparsers.add_parser("convert_ref",
                                 help = "Convert C/Gs in reference genome to T/As")
     
-    convert_ref.add_argument("--ref", '-r', type=str,
+    convert_ref.add_argument("--ref", '-r', type=str, required=True, 
                                 help = "Path to reference genome")
 
-    convert_ref.add_argument("--out_prefix", '-o', type=str,
+    convert_ref.add_argument("--out_prefix", '-o', type=str, required=True, 
                                 help = "Path to reference genome")
+    
+    convert_ref.add_argument("--thread", "-t", type=int, default=4, required=False, help = "Thread number")
 
     convert_ref.set_defaults(func = convert_ref_main)
     ##########

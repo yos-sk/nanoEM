@@ -8,12 +8,12 @@ from call_methylation import *
 
 def convert_ref_main(args):
     
-    conversion_ref(args.ref, args.out_prefix)
+    conversion_ref(args.ref, args.out_prefix, args.thread)
 
 
 def best_align_main(args):
     
-    #conversion_reads(args.fastq)
+    conversion_reads(args.fastq)
 
     prefix = args.fastq.split('.fq')[0]
 
@@ -30,14 +30,14 @@ def best_align_main(args):
         sys.exit(1)
 
     command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix ' + args.out_prefix + 'temp_sam1 -ax map-ont ' + args.ref + ' ' + \
-                             prefix + '_CT.fq.gz  --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '1.sorted.bam'
+                             prefix + '_CT.fq  --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '1.sorted.bam'
     subprocess.check_call(command, shell=True)
 
     command = 'samtools index ' + args.out_prefix + '1.sorted.bam'
     subprocess.check_call(command, shell=True)
 
     command = 'minimap2 -t ' + str(args.thread) + ' --split-prefix ' + args.out_prefix + 'temp_sam1 -ax map-ont ' + args.ref + ' ' + \
-                             prefix + '_GA.fq.gz --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '2.sorted.bam'
+                             prefix + '_GA.fq --eqx | samtools view -b | samtools sort -@ ' + str(args.thread) + ' -o ' + args.out_prefix + '2.sorted.bam'
     subprocess.check_call(command, shell=True)
 
     command = 'samtools index ' + args.out_prefix + '2.sorted.bam'
