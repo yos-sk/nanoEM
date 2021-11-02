@@ -1,166 +1,190 @@
 #! /usr/bin/env python
 
 '''
-Detect and remove PCR dulicates from the 5 prime positions and the 3 prime positions of reads in a BAM file. 
+Detect and remove PCR dulicates from the 5 prime positions and the 3 prime positions of reads in a BAM file.
 '''
 
 import argparse
 import sys
 import pysam
 import numpy as np
-from collections import Counter
+import gzip
+import subprocess
 
-class alignment_info():
-    '''
-    read_name       : Read ID 
-    start           : 5 prime position of an alignment (int)
-    end             : 3 prime position of an alignment (int)
-    mapq            : Mapping quality (int)
-    strand          : Mapping orientation (str)
-    is_supplementary: Whether an alignment is supplementary or not (True/False)
-    '''
-    def __init__(self):
-        self.read_name = ''
-        self.start = -1
-        self.end = -1
-        self.mapq = -1
-        self.strand = ''
-        self.is_supplementary = False
+def calculate_read_length(in_fh:str) -> dict:
 
-    def insert(self, alignment:pysam.libcalignedsegment.AlignedSegment) -> None:
-        self.read_name = alignment.query_name
-        self.start = alignment.reference_start
-        self.end = alignment.reference_end
-        self.mapq = alignment.mapping_quality
-        self.strand = '-' if alignment.is_reverse else '+'
-        self.is_supplementary = alignment.is_supplementary
+    out = dict()
+    if in_fh[-3:] == '.gz':
+        f = gzip.open(in_fh, 'rt')
+    else:
+        f = open(in_fh, 'r')
 
+    rname = ''
+    for i, line in enumerate(f):
+        if i % 4 == 0:
+            rname = line.rstrip('\n').split(' ')[0][1:]
+        if i % 4 == 1:
+            out[rname] = len(line.rstrip('\n'))
 
-def clustering_alignments(bam:str, margin:int) -> dict:
+    f.close()
+
+    return out
+
+def detect_ends(in_fh:str) -> list:
     '''
     Clustering alignments with the same start and end positions in given margin.
-    Requirement: Sorted BAM file and the margin
     '''
 
-    aln_info = dict() # key: chromosome, value: a list of alignment_info classes
-
-    bamfile = pysam.AlignmentFile(bam, 'rb')
-    for aln in bamfile.fetch():
-
-        tmp_info = alignment_info()
-        tmp_info.insert(aln)
-
-        if aln.reference_name in aln_info:
-            aln_info[aln.reference_name].append(tmp_info)
-
-        else:
-            aln_info[aln.reference_name] = [tmp_info]
-
-
-    bamfile.close()
-
-
-    out_cluster = dict() # key: position (chrA:xxxx-yyyy), value: clustered aignment info
-    out_reads = dict() # key: read name, value: clustered reads
-
-    for chrom in aln_info:
-        start, end, prev_start = 0, 0, 0
-        tmp_list = list()
-        for item in aln_info[chrom]:
-            if len(tmp_list) == 0:
-                start = item.start
-                end = item.end
-                prev_start = item.start
-                tmp_list = [item]
-                continue
-
-            # Confirm whether aln_info is sorted or not
-            if prev_start - item.start > 0:
-                print("List of alignment information is not sorted.", prev_start, item.start, sep='\t', file=sys.stderr)
-                sys.exit(1)
-
-
-            if abs(start - item.start) < margin and abs(end - item.end) < margin:
-                start = np.mean(np.array([i.start for i in tmp_list])) 
-                end = np.mean(np.array([i.end for i in tmp_list]))
-                prev_start = item.start
-                tmp_list.append(item)
-
-            else:
-                key = chrom + ':' + str(start) + '-' + str(end)
-                if len(tmp_list) > 1:
-                    out_cluster[key] = tmp_list
-                    for item in tmp_list:
-                        if item.read_name in out_reads:
-                            out_reads[item.read_name].append(key)
-                        else:
-                            out_reads[item.read_name] = [key]
-
-                start = 0
-                end = 0
-                prev_start = item.start
-                tmp_list = list()
-
-    return out_cluster, out_reads
-
-def count_duplicates(out_cluster:dict, out_reads:dict) -> list():
-    '''
-    Count PCR duplicates, PCR chimeras, and PCR chimera candidates
-    PCR duplicates         : Reads in out_cluster from clustering_alignments
-    PCR chimeras           : Reads in out_reads if length of out_reads > 1
-    PCR chimera candidates : Reads not in out_reads but is_supplementary is true
-    '''
-
-    count = 0
-    cc_names = [rname for rname in out_reads if len(out_reads) > 1]
-    cc_candidates = list()
     out = list()
+    f = gzip.open(in_fh, 'rt')
 
-    for items in out_cluster.values():
-        #chrom = key.split(':')[0]
-        #print(chrom, np.mean(np.array([i.start for i in items])), np.mean(np.array([i.end for i in items])), sep='\t', end ='\t')
-        count += len(items)
+    for line in f:
+        items = line.rstrip('\n').split('\t')
+        rname = items[0]
+        if len(items[1:]) == 1:
+            chrom = items[1].split(',')[0]
+            start = items[1].split(',')[1]
+            end = items[1].split(',')[2]
+            out.append([rname, chrom + ':' + start, chrom + ':' + end])
+            continue
 
-        max_mapq = 0
-        tmp_rname = ''
-        for item in items:
-            if item.is_supplementary and item.read_name not in cc_names: cc_candidates.append(item.read_name)
-            if max_mapq < item.mapq:
-                tmp_rname = item.read_name
-        out.append(tmp_rname)
-            
+        start_chrom = items[1].split(',')[0]
+        start_start = items[1].split(',')[1]
+        start_end = items[1].split(',')[2]
+        end_chrom  = items[-1].split(',')[0]
+        end_start = items[-1].split(',')[1]
+        end_end = items[-1].split(',')[2]
+        if len(items) > 2:
+            is_split = True
+        else:
+            is_split = False
 
-    print("# of PCR duplicates:", count, sep='\t', file=sys.stderr)
-    print('# of PCR chimeras:', len(cc_names), sep='\t', file=sys.stderr)
-    print('# of PCR chimera candidates:', len(cc_candidates), sep='\t', file=sys.stderr)
+        if start_chrom < end_chrom:
+            out.append([rname, start_chrom + ':' + start_start, end_chrom + ':' + end_end, is_split])
+        elif end_chrom > start_chrom:
+            out.append([rname, end_chrom + ':' + end_start, start_chrom + ':' + start_end, is_split])
+        else:
+            if start_start <=  end_start:
+                out.append([rname, start_chrom + ':' + start_start, end_chrom + ':' + end_end, is_split])
+            else:
+                out.append([rname, end_chrom + ':' + end_start, start_chrom + ':' + start_end, is_split])
 
-    return out_reads.keys(), out
+    return out
 
-def mark_dup(rnames:list, ex_rnames:list, in_bam:str) -> None:
+
+def make_cluster(ends:dict, margin:int) -> dict:
     '''
-    Mark PCR duplicates (flag: 1024) to an input bam file
+    PCR duplicates -> 1. Both of reference start and reference end are aligned
+                      2. Raw read lengths are nearly same (< 250 bp).
     '''
+
+    duplicate_cluster = dict() # key: position (chrA:xxxx-yyyy), value: list of read names
+
+    prev_start_chrom = ''
+    prev_start = 0
+    tmp_list = list()
+    for i, item in enumerate(sorted(ends, key = lambda x:x[1])):
+
+        if i == 0:
+            prev_start_chrom = item[1].split(':')[0]
+            prev_start = int(item[1].split(':')[1])
+            tmp_list = [item]
+            continue
+
+        chrom = item[1].split(':')[0]
+        start = int(item[1].split(':')[1])
+
+        if chrom == prev_start_chrom and abs(start - prev_start) < margin:
+            tmp_list.append(item)
+        if (i == len(ends) - 1 or chrom != prev_start_chrom or abs(start - prev_start) >= margin) and len(tmp_list) > 1:
+            prev_end, end = 0, 0
+            prev_end_chrom, end_chrom = '', ''
+            tmp_cluster = list()
+            for j, t in enumerate(sorted(tmp_list, key = lambda x:x[2])):
+                if j == 0:
+                    prev_end_chrom = t[2].split(':')[0]
+                    prev_end = int(t[2].split(':')[1])
+                    tmp_cluster = [t]
+                    continue
+
+                end_chrom = t[2].split(':')[0]
+                end = int(t[2].split(':')[1])
+
+                if end_chrom == prev_end_chrom and abs(end - prev_end) < margin:
+                    tmp_cluster.append(t)
+                if (j == len(tmp_list) - 1 or end_chrom != prev_end_chrom or abs(end - prev_end) >= margin) and len(tmp_cluster) > 1:
+                    s_chrom = tmp_cluster[0][1].split(':')[0]
+                    e_chrom = tmp_cluster[0][2].split(':')[0]
+                    c_start = np.mean(np.array([int(k[1].split(':')[1]) for k in tmp_cluster]))
+                    c_end  = np.mean(np.array([int(k[2].split(':')[1]) for k in tmp_cluster]))
+                    duplicate_cluster[s_chrom + ':' + str(c_start) + ',' + e_chrom + ':' + str(c_end)] = [k[0] for k in tmp_cluster]
+                    if j != len(tmp_list) - 1:
+                        tmp_cluster = [t]
+                prev_end_chrom = end_chrom
+                prev_end = end
+
+            tmp_list = [item]
+
+        prev_start_chrom = chrom
+        prev_start = start
+
+    return duplicate_cluster
+
+def mark_duplicates(ends:dict, duplicate_cluster:dict, in_bam:str, in_fastq:str) -> None:
+    '''
+    Count PCR duplicates and PCR chimera candidates
+    PCR duplicates         : Reads in duplicates_cluster from make_cluster
+    PCR chimera candidates : Reads in duplicates_cluster if is_split == True
+    '''
+
+    readlen_dict = calculate_read_length(in_fastq)
+    mark_rnames = set()
+    count = 0
+    for key in duplicate_cluster:
+        tmp_cluster = list()
+        rname = duplicate_cluster[key][0]
+        tmp_cluster.append(readlen_dict[rname])
+        #print(key, rname, sep='\t', end = '')
+        for i, name in enumerate(duplicate_cluster[key][1:]):
+            flag = False
+            for length in tmp_cluster:
+                if abs(length - readlen_dict[name]) > 250:
+                    flag = True
+                else:
+                    flag = False
+                    break
+
+            if flag:
+                tmp_cluster.append(readlen_dict[name])
+            else:
+                mark_rnames.add(name)
+                #print('\t' + name, end = '')
+        #print('')
+    print("# of PCR duplicates:", len(mark_rnames), sep='\t', file=sys.stderr)
+
     bamfile = pysam.AlignmentFile(in_bam, 'rb')
-    out_bam = pysam.AlignemtFile(in_bam[:-4] + 'markdup.bam', 'wb', template = bamfile)
-
+    out_bam = pysam.AlignmentFile(in_bam[:-4] + 'markdup.bam', 'wb', template = bamfile)
 
     for read in bamfile.fetch():
-        if read.query_name in rnames and read.query_name not in ex_rnames:
+        if read.query_name in mark_rnames:
             read.flag += 1024
         out_bam.write(read)
 
     bamfile.close()
+    subprocess.check_call(['samtools', 'index', in_bam[:-4] + 'markdup.bam'])
 
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--input", "-i", required=True, help="BAM file of read")
-    parser.add_argument("--M", "-m", type=int, default=10, required=False, help='')
+    parser.add_argument("--input", "-i", required=True, help="alignment information")
+    parser.add_argument("--bam", "-b", required=True, help="BAM file of read")
+    parser.add_argument("--M", "-m", type=int, default=50, required=False, help='')
+    parser.add_argument("--fastq", "-f", required=True, help='')
     args = parser.parse_args()
 
-    out_cluster, out_reads = clustering_alignments(args.input, args.M)
-    rname_list, ex_rnames = count_duplicates(out_cluster, out_reads)
-    mark_dup(rname_list, ex_rnames, args.input)
+    ends = detect_ends(args.input)
+    duplicates = make_cluster(ends, args.M)
+    mark_duplicates(ends, duplicates, args.bam, args.fastq)
 
 if __name__ == '__main__':
     main()
