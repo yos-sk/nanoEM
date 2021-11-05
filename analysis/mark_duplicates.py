@@ -96,32 +96,33 @@ def make_cluster(ends:dict, margin:int) -> dict:
 
         if chrom == prev_start_chrom and abs(start - prev_start) < margin:
             tmp_list.append(item)
-        if (i == len(ends) - 1 or chrom != prev_start_chrom or abs(start - prev_start) >= margin) and len(tmp_list) > 1:
-            prev_end, end = 0, 0
-            prev_end_chrom, end_chrom = '', ''
-            tmp_cluster = list()
-            for j, t in enumerate(sorted(tmp_list, key = lambda x:x[2])):
-                if j == 0:
-                    prev_end_chrom = t[2].split(':')[0]
-                    prev_end = int(t[2].split(':')[1])
-                    tmp_cluster = [t]
-                    continue
-
-                end_chrom = t[2].split(':')[0]
-                end = int(t[2].split(':')[1])
-
-                if end_chrom == prev_end_chrom and abs(end - prev_end) < margin:
-                    tmp_cluster.append(t)
-                if (j == len(tmp_list) - 1 or end_chrom != prev_end_chrom or abs(end - prev_end) >= margin) and len(tmp_cluster) > 1:
-                    s_chrom = tmp_cluster[0][1].split(':')[0]
-                    e_chrom = tmp_cluster[0][2].split(':')[0]
-                    c_start = np.mean(np.array([int(k[1].split(':')[1]) for k in tmp_cluster]))
-                    c_end  = np.mean(np.array([int(k[2].split(':')[1]) for k in tmp_cluster]))
-                    duplicate_cluster[s_chrom + ':' + str(c_start) + ',' + e_chrom + ':' + str(c_end)] = [k[0] for k in tmp_cluster]
-                    if j != len(tmp_list) - 1:
+        if i == len(ends) - 1 or chrom != prev_start_chrom or abs(start - prev_start) >= margin:
+            if len(tmp_list) > 1:
+                prev_end, end = 0, 0
+                prev_end_chrom, end_chrom = '', ''
+                tmp_cluster = list()
+                for j, t in enumerate(sorted(tmp_list, key = lambda x:x[2])):
+                    if j == 0:
+                        prev_end_chrom = t[2].split(':')[0]
+                        prev_end = int(t[2].split(':')[1])
                         tmp_cluster = [t]
-                prev_end_chrom = end_chrom
-                prev_end = end
+                        continue
+
+                    end_chrom = t[2].split(':')[0]
+                    end = int(t[2].split(':')[1])
+
+                    if end_chrom == prev_end_chrom and abs(end - prev_end) < margin:
+                        tmp_cluster.append(t)
+                    if  j == len(tmp_list) - 1 or end_chrom != prev_end_chrom or abs(end - prev_end) >= margin:
+                        if len(tmp_cluster) > 1:
+                            s_chrom = tmp_cluster[0][1].split(':')[0]
+                            e_chrom = tmp_cluster[0][2].split(':')[0]
+                            c_start = np.mean(np.array([int(k[1].split(':')[1]) for k in tmp_cluster]))
+                            c_end  = np.mean(np.array([int(k[2].split(':')[1]) for k in tmp_cluster]))
+                            duplicate_cluster[s_chrom + ':' + str(c_start) + ',' + e_chrom + ':' + str(c_end)] = [k[0] for k in tmp_cluster]
+                        tmp_cluster = [t]
+                    prev_end_chrom = end_chrom
+                    prev_end = end
 
             tmp_list = [item]
 
