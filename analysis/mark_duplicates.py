@@ -113,7 +113,7 @@ def make_cluster(ends:dict, margin:int) -> dict:
 
                     if end_chrom == prev_end_chrom and abs(end - prev_end) < margin:
                         tmp_cluster.append(t)
-                    if  j == len(tmp_list) - 1 or end_chrom != prev_end_chrom or abs(end - prev_end) >= margin:
+                    if (j == len(tmp_list) - 1 or end_chrom != prev_end_chrom or abs(end - prev_end) >= margin):
                         if len(tmp_cluster) > 1:
                             s_chrom = tmp_cluster[0][1].split(':')[0]
                             e_chrom = tmp_cluster[0][2].split(':')[0]
