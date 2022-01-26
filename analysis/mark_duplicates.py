@@ -172,6 +172,7 @@ def mark_duplicates(ends:dict, duplicate_cluster:dict, in_bam:str, in_fastq:str)
         out_bam.write(read)
 
     bamfile.close()
+    out_bam.close()
     subprocess.check_call(['samtools', 'index', in_bam[:-4] + 'markdup.bam'])
 
 def main():
