@@ -44,6 +44,8 @@ minimap2 -t 8 --split-prefix temp_sam2 -ax map-ont output.fa  *_GA.fq.gz --eqx |
 samtools index 2.sorted.bam
 ```
 
+You can perform this step without the '--split-prefix' option if you are using minimap2 downloaded by 'git clone' after April 7, 2023. It's faster.
+
 ### Choosing best alignments
 
 ```
